@@ -79,7 +79,7 @@ summary(custdata$income)
 
 #section 3.2.1
 
-install.packages("ggplot2")
+#install.packages("ggplot2")
 
 library(ggplot2)
 ggplot(custdata) +
@@ -132,9 +132,9 @@ ggplot(custdata2, aes(x=age, y=income)) +
   stat_smooth() +
   ylim(0, 200000)
 
-#install.packages("hexbin")
+install.packages("hexbin")
 
-library(hexbin)
+#library(hexbin)
 
 ggplot(custdata2, aes(x=age, y=income))+
   geom_hex(binwidth=c(5,10000))+
@@ -165,3 +165,44 @@ custdata$is.employed.fix <- ifelse(is.na(custdata$is.employed),"missing",
 summary(as.factor(custdata$is.employed.fix))
 
 # in 4.1.1, about pg140
+
+summary(custdata$Income)
+meanIncome <- mean(custdata$Income, na.rm=T)
+income.fix <- ifelse(is.na(custdata$Income),meanIncome, custdata$Income)
+summary(income.fix)
+# assign the issing ones to the mean, and on average, it will be okay
+# other options would be to impute the income based on other factors, as per original R book back in 2011
+# eg regression, decision trees etc.
+# but only if the records are missing the data by chance, if they are missing it for a systematic reason....
+
+breaks <- c(0,10000,50000,100000,250000,1000000)
+Income.groups <- cut(custdata$Income, breaks=breaks, include.lowest=T)
+
+# NA is still there, but this variable is now a categorical, rather than continuous
+summary(Income.groups)
+
+# so make is a char
+Income.groups <- as.character(Income.groups)
+
+Income.groups <- ifelse(is.na(Income.groups), "no income", Income.groups)
+
+summary(as.factor(Income.groups))
+# but they are scientific!!!
+
+# or, flag the missing records with a new variable and replace with 0
+missingIncome <- is.na(custdata$Income)
+Income.fix <- ifelse(is.na(custdata$Income), 0, custdata$Income)
+
+summary(medianincome)
+
+#merge two data frames together - full outer joins are by all = T
+#custdata <- merge(custdata, medianincome, by.x="state.of.res", by.y ="State")
+# already there??????
+
+summary(custdata[,c("state.of.res", "income", "Median.Income")])
+
+# now normalize the income, into a ratio with the states median income - avoids state bte state magnitude issues
+
+custdata$income.norm <- with(custdata, income/Median.Income)
+
+summary(custdata$income.norm)
