@@ -208,4 +208,4 @@ custdata$income.norm <- with(custdata, income/Median.Income)
 summary(custdata$income.norm)
 #normalizing and rescaling ~157
 # listing 4.7
-# changed
+# changed again
