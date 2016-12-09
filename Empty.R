@@ -206,3 +206,5 @@ summary(custdata[,c("state.of.res", "income", "Median.Income")])
 custdata$income.norm <- with(custdata, income/Median.Income)
 
 summary(custdata$income.norm)
+#normalizing and rescaling ~157
+
