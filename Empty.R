@@ -208,4 +208,79 @@ custdata$income.norm <- with(custdata, income/Median.Income)
 summary(custdata$income.norm)
 #normalizing and rescaling ~157
 # listing 4.7
-# changed
+<<<<<<< HEAD
+
+meanage <- mean(custdata$age)
+
+custdata$age.normalized <- custdata$age / meanage
+summary(custdata$age.normalized)
+
+stdage <- sd(custdata$age)
+
+#normalize the age to the difference from the mean, in standard deviations
+custdata$age.normalized <- (custdata$age - meanage) / stdage
+
+summary(custdata$age.normalized)
+# useful when distributions are roughly symmetrical
+
+# log transforms only work for non negative data, unless you use a signed log...???
+
+summary(custdata$gp)
+
+# runif gens a uniform distribution of numbers between 0-1 for the number of rows in the data frame
+custdata$gp <- runif(dim(custdata)[1])
+
+testset <- subset(custdata, custdata$gp <= 0.1)
+trainingSet <- subset(custdata, custdata$gp > 0.1)
+
+dim(testset)[1]
+dim(trainingSet)[1]
+
+# once the gp is generated, then we can repeatedly pull the same sample and training split as we continue to develop
+# rather than using the sample function, which draws a random sample each time it is called
+# ie. reproducible
+
+# but, this way means each record must be individual cases / customers
+# for a household level analysis, each member of a household MUST be in the same test / training split
+# meaning that the split should be done at the household level, not the customer level
+
+# listing 4.10
+
+# listing 5.1
+
+spamD <- read.table('Ignore/spamD.tsv',header=T,sep='\t')
+spamTrain <- subset(spamD, spamD$rgroup >= 10)
+spamTest <- subset(spamD, spamD$rgroup < 10)
+spamVars <- setdiff(colnames(spamD),list('rgroup','spam'))
+
+spamFormula <- as.formula(paste('spam=="spam"',paste(spamVars,collapse=' + '), sep='~'))
+
+spamModel <- glm(spamFormula, family=binomial(link='logit'), 
+                 data=spamTrain)
+
+spamTrain$prod <- predict(spamModel, newdata=spamTrain, type='response')
+print(with(spamTrain, table(y=spam, glmPred=prod>0.5)))
+
+spamTest$prod <- predict(spamModel, newdata=spamTest, type='response')
+print(with(spamTest, table(y=spam, glmPred=prod>0.5)))
+
+
+# accuracy
+# precision = 
+# recall
+# F1
+
+# sensitivity = recall = true psotivie rate
+# specificity = true negative rate
+
+library(ggplot2)
+ggplot(data=spamTest) +
+  geom_density(aes(x=prod,color=spam,linetype=spam))
+
+#install.packages('ROCR')
+library('ROCR')
+eval <- prediction(spamTest$prod,spamTest$spam)
+plot(performance(eval,"tpr","fpr"))
+print(attributes(performance(eval,'auc'))$y.values[[1]])
+
+# log likelihood ~211
