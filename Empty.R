@@ -209,3 +209,4 @@ summary(custdata$income.norm)
 #normalizing and rescaling ~157
 # listing 4.7
 # changed again and again and again
+# stge this
