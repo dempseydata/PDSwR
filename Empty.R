@@ -245,6 +245,7 @@ dim(trainingSet)[1]
 # meaning that the split should be done at the household level, not the customer level
 
 # listing 4.10
+<<<<<<< HEAD
 
 # listing 5.1
 
@@ -284,3 +285,5 @@ plot(performance(eval,"tpr","fpr"))
 print(attributes(performance(eval,'auc'))$y.values[[1]])
 
 # log likelihood ~211
+=======
+>>>>>>> 3db11e1d860494ba7ef4a59bd781fc49f7a8c620
