@@ -304,3 +304,134 @@ ggplot() +
   geom_polygon(data=h,aes(x=x,y=y,group=cluster,fill=as.factor(cluster)),
                alpha=0.4,linetype=0) +
   theme(legend.position = "none")
+
+# chapter 6
+
+load('Ignore/KDD2009.Rdata')
+
+d <- read.table('Ignore/orange_small_train.data', header=T,sep = '\t', na.strings = c('NA',''))
+
+set.seed(729375)
+d$rgroup <- runif(dim(d)[[1]])
+
+dTrainAll <- subset(d, rgroup <= 0.9)
+dTest <- subset(d, rgroup > 0.9)
+outcomes <- c('churn','appetency','upselling')
+vars <- setdiff(colnames(dTrainAll), c(outcomes, 'rgroup'))
+
+catVars <- vars[sapply(dTrainAll[,vars], class) %in% c('factor','character')]
+numericVars <- vars[sapply(dTrainAll[,vars], class) %in% c('numeric','integer')]
+
+rm(list=c('d','churn','appetency','upselling'))
+
+outcome <- 'churn'
+pos <- '1'
+
+# sets useForCal into TRUE/FALSE using a binomial distribution
+# not sure WHY they used this method - no explanation given
+useForCal <- rbinom(n=dim(dTrainAll)[[1]], size=1,prob=0.1) > 0
+dCal < subset(dTrainAll, useForCal)
+dTrain <- subset(dTrainAll, !useForCal)
+
+table218 <- table(
+  Var281=dTrain[,'Var218'],
+  churn=dTrain[,'churn'],
+  useNA='ifany')
+print(table218)
+
+print(table218[,2]/(table218[,1]+table218[,2]))
+
+mkPredC <- function(outCol, varCol, appCol) {
+  pPos <- sum(outCol==pos) / length(outCol)
+  naTab <- table(as.factor(outCol[is.na(varCol)]))
+  pPosWna <- (naTab/sum(naTab)) [pos]
+  vTab <- table(as.factor(outCol),varCol)
+  pPosWv <- (vTab[pos,]+1.0e-3*pPos)/(colSums(vTab)+1.0e-3)
+  
+  pred <- pPosWv[appCol]
+  pred[is.na(appCol)] <- pPosWna
+  pred[is.na(pred)] <- pPos
+  
+  pred
+}
+
+# repeatedly do simple, single comulmn preictorsfor categorical variables
+for(v in catVars) {
+  pi <- paste('pred',v,sep='')
+  dTrain[,pi] <- mkPredC(dTrain[,outcome],dTrain[,v],dTrain[,v])
+  dCal[,pi] <- mkPredC(dTrain[,outcome],dTrain[,v],dCal[,v])
+  dTest[,pi] <- mkPredC(dTrain[,outcome],dTrain[,v],dTest[,v])
+}
+
+library('ROCR')
+
+calcAUC <- function(predcol,outcol) {
+  perf <- performance(prediction(predcol,outcol==pos),'auc')
+  as.numeric(perf@y.values)
+}
+
+
+for(v in catVars) {
+  pi <- paste('pred',v,sep='')
+  aucTrain <- calcAUC(dTrain[,pi],dTrain[,outcome])
+  if(aucTrain>=0.8) {
+    aucCal <- calcAUC(dCal[,pi],dCal[,outcome])
+    print(sprintf("%s, trainAUC: %4.3f calibrationAUC: %4.3f",
+                  pi,aucTrain,aucCal))
+  }
+}
+
+
+mkPredN <- function(outCol,varCol,appCol) {
+  cuts <- unique(as.numeric(quantile(varCol,
+                                     probs=seq(0, 1, 0.1),na.rm=T)))
+  varC <- cut(varCol,cuts)
+  
+  appC <- cut(appCol,cuts)
+  mkPredC(outCol,varC,appC)
+}
+
+for(v in numericVars) {
+  pi <- paste('pred',v,sep='')
+  dTrain[,pi] <- mkPredN(dTrain[,outcome],dTrain[,v],dTrain[,v])
+  dTest[,pi] <- mkPredN(dTrain[,outcome],dTrain[,v],dTest[,v])
+  dCal[,pi] <- mkPredN(dTrain[,outcome],dTrain[,v],dCal[,v])
+  aucTrain <- calcAUC(dTrain[,pi],dTrain[,outcome])
+  if(aucTrain>=0.55) {
+    aucCal <- calcAUC(dCal[,pi],dCal[,outcome])
+    print(sprintf("%s, trainAUC: %4.3f calibrationAUC: %4.3f",
+                  pi,aucTrain,aucCal))
+  }
+} 
+
+var <- 'Var217'
+aucs <- rep(0,100)
+
+for(rep in 1:length(aucs)){
+  useForCalRep <- rbinom(n=dim(dTrainAll)[[1]], size=1, prob=0.1) >0
+  predRep <- mkPredC(dTrainAll[!useForCalRep, outcome],
+                     dTrainAll[!useForCalRep, var],
+                     dTrainAll[useForCalRep, var])
+  aucs[rep] <- calcAUC(predRep, dTrainAll[useForCalRep, outcome])
+}
+mean(aucs)
+sd(aucs)
+
+
+fCross <- function() {
+  useForCalRep <- rbinom(n=dim(dTrainAll)[[1]],size=1,prob=0.1)>0
+  predRep <- mkPredC(dTrainAll[!useForCalRep,outcome],
+                     dTrainAll[!useForCalRep,var],
+                     
+                     dTrainAll[useForCalRep,var])
+  calcAUC(predRep,dTrainAll[useForCalRep,outcome])
+}
+# wrapper for sapply to repeat the function above 100 times
+aucs <- replicate(100,fCross())
+# sig quicker
+
+# listing 6.11???
+# truth be told. I dont think I am learning much from this book, as it is not exercise driven...
+# not as good as previous books.
+# SWITCH to Hadley Wickams
+
